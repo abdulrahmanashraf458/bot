@@ -819,106 +819,136 @@ async def handle_menu_choice(update: Update, context: CallbackContext):
         context.user_data['awaiting_feedback'] = True
     elif choice == 'block_user':
         await query.message.reply_text("Please enter the user ID to block:")
-        context.user_data['awaiting_block_user'] = True
+        context.user_data['awaiting_block_user_id'] = True
     elif choice == 'unblock_user':
         await query.message.reply_text("Please enter the user ID to unblock:")
-        context.user_data['awaiting_unblock_user'] = True
+        context.user_data['awaiting_unblock_user_id'] = True
     elif choice == 'timeout_user':
         await query.message.reply_text("Please enter the user ID and duration (e.g., 12345 1h for 1 hour timeout):")
         context.user_data['awaiting_timeout_user'] = True
     elif choice == 'remove_timeout':
-        await query.message.reply_text("Please enter the user ID to remove timeout:")
-        context.user_data['awaiting_remove_timeout'] = True
+        await query.message.reply_text("Please enter the user ID to remove the timeout:")
+        context.user_data['awaiting_remove_timeout_user'] = True
     elif choice == 'list_blocked':
-        await list_blocked(update, context)
+        if data['blocked_users']:
+            blocked_list = "\n".join(str(user_id) for user_id in data['blocked_users'])
+            await query.message.reply_text(f"Blocked Users:\n{blocked_list}")
+        else:
+            await query.message.reply_text("There are no users currently blocked from using the bot.")
     elif choice == 'add_section':
-        await query.message.reply_text("Please enter the section name to add:")
+        await query.message.reply_text("Please enter the name of the new section:")
         context.user_data['awaiting_add_section'] = True
     elif choice == 'delete_section':
-        await query.message.reply_text("Please enter the section name to delete:")
+        await query.message.reply_text("Please enter the name of the section to delete:")
         context.user_data['awaiting_delete_section'] = True
     elif choice == 'upload_accounts':
-        await upload_accounts(update, context)
+        await query.message.reply_text("Please specify the section name to add the accounts to:")
+        context.user_data['awaiting_section_name'] = True
+    elif choice == 'set_daily_limit':
+        await query.message.reply_text("Please enter the new daily limit for free users:")
+        context.user_data['awaiting_daily_limit'] = True
+    elif choice == 'set_unlimited_access':
+        await query.message.reply_text("Please enter 'on' to enable unlimited access or 'off' to disable unlimited access:")
+        context.user_data['awaiting_unlimited_access'] = True
+    elif choice == 'reset_all_free_limits':
+        reset_all_free_limits()
+        await query.message.reply_text("All free user daily limits have been reset.")
+    elif choice == 'reset_all_premium_limits':
+        reset_all_premium_limits()
+        await query.message.reply_text("All premium user daily limits have been reset.")
+    elif choice == 'reset_all_premium_plus_limits':
+        reset_all_premium_plus_limits()
+        await query.message.reply_text("All premium plus user daily limits have been reset.")
+    elif choice == 'enable_maintenance':
+        data['maintenance_mode'] = True
+        save_data()
+        await query.message.reply_text("The bot is now in maintenance mode.")
+        # Notify all users about maintenance mode
+        for user_id in data['user_data'].keys():
+            if user_id != OWNER_ID:
+                try:
+                    await bot.send_message(chat_id=user_id, text="The bot is currently under maintenance. Please try again later.")
+                except Exception as e:
+                    logger.error(f"Failed to send maintenance message to user {user_id}: {e}")
+    elif choice == 'disable_maintenance':
+        data['maintenance_mode'] = False
+        save_data()
+        await query.message.reply_text("The bot is now out of maintenance mode.")
+        # Notify all users about end of maintenance mode
+        for user_id in data['user_data'].keys():
+            if user_id != OWNER_ID:
+                try:
+                    await bot.send_message(chat_id=user_id, text="The bot is now available. You can use it again.")
+                except Exception as e:
+                    logger.error(f"Failed to send availability message to user {user_id}: {e}")
     elif choice == 'free_user_management':
         await handle_free_user_management(update, context)
     elif choice == 'premium_user_management':
         await handle_premium_user_management(update, context)
     elif choice == 'premium_plus_user_management':
         await handle_premium_plus_user_management(update, context)
-    elif choice == 'set_daily_limit':
-        await query.message.reply_text("Please enter the new daily limit for free users:")
-        context.user_data['awaiting_daily_limit'] = True
-    elif choice == 'set_premium_daily_limit':
-        await query.message.reply_text("Please enter the new daily limit for premium users:")
-        context.user_data['awaiting_premium_daily_limit'] = True
-    elif choice == 'set_premium_plus_daily_limit':
-        await query.message.reply_text("Please enter the new daily limit for premium plus users:")
-        context.user_data['awaiting_premium_plus_daily_limit'] = True
-    elif choice == 'set_unlimited_access':
-        data['unlimited_access'] = not data['unlimited_access']
-        save_data()
-        await query.message.reply_text(f"Unlimited access for free users has been {'enabled' if data['unlimited_access'] else 'disabled'}.")
-    elif choice == 'set_unlimited_access_premium_plus':
-        data['unlimited_access_premium_plus'] = not data['unlimited_access_premium_plus']
-        save_data()
-        await query.message.reply_text(f"Unlimited access for premium plus users has been {'enabled' if data['unlimited_access_premium_plus'] else 'disabled'}.")
-    elif choice == 'reset_all_free_limits':
-        reset_all_free_limits()
-        await query.message.reply_text("All daily limits for free users have been reset.")
-    elif choice == 'reset_all_premium_limits':
-        reset_all_premium_limits()
-        await query.message.reply_text("All daily limits for premium users have been reset.")
-    elif choice == 'reset_all_premium_plus_limits':
-        reset_all_premium_plus_limits()
-        await query.message.reply_text("All daily limits for premium plus users have been reset.")
-    elif choice == 'enable_maintenance':
-        data['maintenance_mode'] = True
-        save_data()
-        await query.message.reply_text("Maintenance mode has been enabled.")
-    elif choice == 'disable_maintenance':
-        data['maintenance_mode'] = False
-        save_data()
-        await query.message.reply_text("Maintenance mode has been disabled.")
     elif choice == 'add_premium_user':
-        await query.message.reply_text("Please enter the user ID and duration (e.g., 12345 1d for 1 day premium):")
-        context.user_data['awaiting_add_premium_user'] = True
+        await query.message.reply_text("Please enter the duration for the premium user (e.g., 1d, 1w, 1m, 1y, lf):")
+        context.user_data['awaiting_add_premium_user_duration'] = True
     elif choice == 'remove_premium_user':
         await query.message.reply_text("Please enter the user ID to remove from premium:")
         context.user_data['awaiting_remove_premium_user'] = True
+    elif choice == 'set_premium_daily_limit':
+        await query.message.reply_text("Please enter the new daily limit for premium users:")
+        context.user_data['awaiting_set_premium_daily_limit'] = True
     elif choice == 'add_premium_plus_user':
-        await query.message.reply_text("Please enter the user ID and duration (e.g., 12345 1d for 1 day premium plus):")
-        context.user_data['awaiting_add_premium_plus_user'] = True
+        await query.message.reply_text("Please enter the duration for the premium plus user (e.g., 1d, 1w, 1m, 1y, lf):")
+        context.user_data['awaiting_add_premium_plus_user_duration'] = True
     elif choice == 'remove_premium_plus_user':
         await query.message.reply_text("Please enter the user ID to remove from premium plus:")
         context.user_data['awaiting_remove_premium_plus_user'] = True
+    elif choice == 'set_premium_plus_daily_limit':
+        await query.message.reply_text("Please enter the new daily limit for premium plus users:")
+        context.user_data['awaiting_set_premium_plus_daily_limit'] = True
+    elif choice == 'set_unlimited_access_premium_plus':
+        await query.message.reply_text("Please enter 'on' to enable unlimited access for premium plus users or 'off' to disable unlimited access:")
+        context.user_data['awaiting_unlimited_access_premium_plus'] = True
     elif choice == 'add_admin':
         await query.message.reply_text("Please enter the user ID to add as admin:")
         context.user_data['awaiting_add_admin'] = True
     elif choice == 'remove_admin':
-        await query.message.reply_text("Please enter the user ID to remove as admin:")
+        await query.message.reply_text("Please enter the user ID to remove from admin:")
         context.user_data['awaiting_remove_admin'] = True
 
 async def handle_user_input(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
+    text = update.message.text
 
-    if context.user_data.get('awaiting_block_user'):
-        target_user_id = int(update.message.text)
+    update_last_activity(user_id)
+    log_activity(update)
+    if detect_unusual_activity(user_id):
+        await update.message.reply_text("Suspicious activity detected. Action will be taken.")
+        return
+
+    timeout_end = is_blocked(user_id)
+    if timeout_end:
+        await update.message.reply_text(f"You are currently in timeout until {timeout_end}. Please try again later.")
+        return
+
+    if data['maintenance_mode'] and not is_admin(user_id):
+        await update.message.reply_text("The bot is currently under maintenance. Please try again later.")
+        return
+
+    if context.user_data.get('awaiting_block_user_id'):
+        target_user_id = int(text)
         data['blocked_users'].add(target_user_id)
         save_data()
+        context.user_data['awaiting_block_user_id'] = False
         await update.message.reply_text(f"User with ID {target_user_id} has been blocked.")
-        context.user_data['awaiting_block_user'] = False
-    elif context.user_data.get('awaiting_unblock_user'):
-        target_user_id = int(update.message.text)
+    elif context.user_data.get('awaiting_unblock_user_id'):
+        target_user_id = int(text)
         data['blocked_users'].discard(target_user_id)
         save_data()
+        context.user_data['awaiting_unblock_user_id'] = False
         await update.message.reply_text(f"User with ID {target_user_id} has been unblocked.")
-        context.user_data['awaiting_unblock_user'] = False
     elif context.user_data.get('awaiting_timeout_user'):
-        parts = update.message.text.split()
-        if len(parts) != 2:
-            await update.message.reply_text("Invalid format. Please provide user ID and duration (e.g., 12345 1h).")
-        else:
-            target_user_id, duration_str = parts
+        try:
+            target_user_id, duration_str = text.split()
             target_user_id = int(target_user_id)
             if duration_str.endswith('m'):
                 timeout_duration = timedelta(minutes=int(duration_str[:-1]))
@@ -937,17 +967,23 @@ async def handle_user_input(update: Update, context: CallbackContext):
             data['user_data'][target_user_id]['timeout_end'] = end_time.isoformat()
             save_data()
             await update.message.reply_text(f"User with ID {target_user_id} has been timed out until {end_time}.")
+            try:
+                await context.bot.send_message(chat_id=target_user_id, text=f"You are timed out until {end_time}.")
+            except Exception as e:
+                logger.error(f"Failed to send timeout message to user {target_user_id}: {e}")
+        except ValueError:
+            await update.message.reply_text("Invalid input. Please provide user ID and duration (e.g., 12345 1h).")
         context.user_data['awaiting_timeout_user'] = False
-    elif context.user_data.get('awaiting_remove_timeout'):
-        target_user_id = int(update.message.text)
+    elif context.user_data.get('awaiting_remove_timeout_user'):
+        target_user_id = int(text)
         if 'timeout_end' in data['user_data'].get(target_user_id, {}):
             del data['user_data'][target_user_id]['timeout_end']
         data['blocked_users'].discard(target_user_id)
         save_data()
+        context.user_data['awaiting_remove_timeout_user'] = False
         await update.message.reply_text(f"Timeout removed for user with ID {target_user_id}.")
-        context.user_data['awaiting_remove_timeout'] = False
     elif context.user_data.get('awaiting_add_section'):
-        section_name = update.message.text.strip()
+        section_name = text.strip()
         section_file = os.path.join(ACCOUNTS_DIR, f'{section_name}.txt')
         if not os.path.exists(section_file):
             open(section_file, 'w').close()
@@ -958,7 +994,7 @@ async def handle_user_input(update: Update, context: CallbackContext):
             await update.message.reply_text(f"Section '{section_name}' already exists.")
         context.user_data['awaiting_add_section'] = False
     elif context.user_data.get('awaiting_delete_section'):
-        section_name = update.message.text.strip()
+        section_name = text.strip()
         section_file = os.path.join(ACCOUNTS_DIR, f'{section_name}.txt')
         if os.path.exists(section_file):
             os.remove(section_file)
@@ -969,126 +1005,203 @@ async def handle_user_input(update: Update, context: CallbackContext):
         else:
             await update.message.reply_text(f"Section '{section_name}' does not exist.")
         context.user_data['awaiting_delete_section'] = False
+    elif context.user_data.get('awaiting_section_name'):
+        section_name = text.strip()
+        context.user_data['section_name'] = section_name
+        await update.message.reply_text(f"Section '{section_name}' selected. Now, please upload the txt file with accounts:")
+        context.user_data['awaiting_upload'] = True
     elif context.user_data.get('awaiting_daily_limit'):
-        new_limit = int(update.message.text)
-        data['daily_limit'] = new_limit
+        data['daily_limit'] = int(text)
         save_data()
-        await update.message.reply_text(f"Daily limit for free users has been set to {new_limit}.")
+        await update.message.reply_text(f"Daily limit for free users set to {data['daily_limit']} accounts per day.")
         context.user_data['awaiting_daily_limit'] = False
-    elif context.user_data.get('awaiting_premium_daily_limit'):
-        new_limit = int(update.message.text)
-        data['premium_daily_limit'] = new_limit
-        save_data()
-        await update.message.reply_text(f"Daily limit for premium users has been set to {new_limit}.")
-        context.user_data['awaiting_premium_daily_limit'] = False
-    elif context.user_data.get('awaiting_premium_plus_daily_limit'):
-        new_limit = int(update.message.text)
-        data['premium_plus_daily_limit'] = new_limit
-        save_data()
-        await update.message.reply_text(f"Daily limit for premium plus users has been set to {new_limit}.")
-        context.user_data['awaiting_premium_plus_daily_limit'] = False
-    elif context.user_data.get('awaiting_add_premium_user'):
-        parts = update.message.text.split()
-        if len(parts) != 2:
-            await update.message.reply_text("Invalid format. Please provide user ID and duration (e.g., 12345 1d).")
+    elif context.user_data.get('awaiting_unlimited_access'):
+        if text.lower() == 'on':
+            data['unlimited_access'] = True
+            await update.message.reply_text("Unlimited access enabled.")
+        elif text.lower() == 'off':
+            data['unlimited_access'] = False
+            await update.message.reply_text("Unlimited access disabled.")
         else:
-            target_user_id, duration_str = parts
-            target_user_id = int(target_user_id)
-            if duration_str.endswith('d'):
+            await update.message.reply_text("Invalid input. Please enter 'on' or 'off'.")
+        save_data()
+        context.user_data['awaiting_unlimited_access'] = False
+    elif context.user_data.get('awaiting_reset_user_limit'):
+        target_user_id = int(text)
+        reset_user_limit(target_user_id)
+        context.user_data['awaiting_reset_user_limit'] = False
+        await update.message.reply_text(f"Daily limit for user with ID {target_user_id} has been reset.")
+    elif context.user_data.get('awaiting_issue'):
+        issue = text.strip()
+        report_bot = Bot(token=REPORT_BOT_TOKEN)
+        await report_bot.send_message(chat_id=OWNER_ID, text=f"Issue Report from User ID {user_id}:\n{issue}")
+        context.user_data['awaiting_issue'] = False
+        await update.message.reply_text("Thank you for reporting the issue. It has been forwarded to the support team.")
+    elif context.user_data.get('awaiting_feedback'):
+        feedback = text.strip()
+        feedback_bot = Bot(token=FEEDBACK_BOT_TOKEN)
+        await feedback_bot.send_message(chat_id=OWNER_ID, text=f"Feedback from User ID {user_id}:\n{feedback}")
+        context.user_data['awaiting_feedback'] = False
+        await update.message.reply_text("Thank you for your feedback. It has been forwarded to the team.")
+    elif context.user_data.get('awaiting_add_premium_user_duration'):
+        context.user_data['premium_user_duration'] = text.strip()
+        await update.message.reply_text("Please enter the user ID to add as premium:")
+        context.user_data['awaiting_add_premium_user_id'] = True
+        context.user_data['awaiting_add_premium_user_duration'] = False
+    elif context.user_data.get('awaiting_add_premium_user_id'):
+        target_user_id = int(text)
+        duration_str = context.user_data['premium_user_duration']
+        if duration_str == 'lf':
+            end_time = None
+        else:
+            if duration_str.endswith('m'):
+                premium_duration = timedelta(minutes=int(duration_str[:-1]))
+            elif duration_str.endswith('h'):
+                premium_duration = timedelta(hours=int(duration_str[:-1]))
+            elif duration_str.endswith('d'):
                 premium_duration = timedelta(days=int(duration_str[:-1]))
             elif duration_str.endswith('w'):
                 premium_duration = timedelta(weeks=int(duration_str[:-1]))
-            elif duration_str.endswith('m'):
-                premium_duration = timedelta(days=int(duration_str[:-1]) * 30)
             elif duration_str.endswith('y'):
                 premium_duration = timedelta(days=int(duration_str[:-1]) * 365)
-            elif duration_str == 'lf':
-                premium_duration = timedelta(days=365 * 100)  # Considered as lifetime
             else:
-                await update.message.reply_text("Invalid duration format. Use 'd' for days, 'w' for weeks, 'm' for months, 'y' for years, or 'lf' for lifetime.")
+                await update.message.reply_text("Invalid duration format. Use 'm' for minutes, 'h' for hours, 'd' for days, 'w' for weeks, 'y' for years, or 'lf' for lifetime.")
                 return
-
             end_time = datetime.now() + premium_duration
-            data['premium_users'][target_user_id] = end_time.isoformat()
-            save_data()
-            await update.message.reply_text(f"User with ID {target_user_id} has been added as premium until {end_time}.")
-        context.user_data['awaiting_add_premium_user'] = False
+        
+        data['premium_users'][target_user_id] = end_time.isoformat() if end_time else 'lifetime'
+        save_data()
+        context.user_data['awaiting_add_premium_user_id'] = False
+        await update.message.reply_text(f"User with ID {target_user_id} has been added as premium.")
     elif context.user_data.get('awaiting_remove_premium_user'):
-        target_user_id = int(update.message.text)
+        target_user_id = int(text)
         if target_user_id in data['premium_users']:
             del data['premium_users'][target_user_id]
             save_data()
+            context.user_data['awaiting_remove_premium_user'] = False
             await update.message.reply_text(f"User with ID {target_user_id} has been removed from premium.")
         else:
             await update.message.reply_text(f"User with ID {target_user_id} is not a premium user.")
-        context.user_data['awaiting_remove_premium_user'] = False
-    elif context.user_data.get('awaiting_add_premium_plus_user'):
-        parts = update.message.text.split()
-        if len(parts) != 2:
-            await update.message.reply_text("Invalid format. Please provide user ID and duration (e.g., 12345 1d).")
+            context.user_data['awaiting_remove_premium_user'] = False
+    elif context.user_data.get('awaiting_set_premium_daily_limit'):
+        data['premium_daily_limit'] = int(text)
+        save_data()
+        context.user_data['awaiting_set_premium_daily_limit'] = False
+        await update.message.reply_text(f"Premium daily limit set to {data['premium_daily_limit']} accounts per day.")
+    elif context.user_data.get('awaiting_add_premium_plus_user_duration'):
+        context.user_data['premium_plus_user_duration'] = text.strip()
+        await update.message.reply_text("Please enter the user ID to add as premium plus:")
+        context.user_data['awaiting_add_premium_plus_user_id'] = True
+        context.user_data['awaiting_add_premium_plus_user_duration'] = False
+    elif context.user_data.get('awaiting_add_premium_plus_user_id'):
+        target_user_id = int(text)
+        duration_str = context.user_data['premium_plus_user_duration']
+        if duration_str == 'lf':
+            end_time = None
         else:
-            target_user_id, duration_str = parts
-            target_user_id = int(target_user_id)
-            if duration_str.endswith('d'):
+            if duration_str.endswith('m'):
+                premium_plus_duration = timedelta(minutes=int(duration_str[:-1]))
+            elif duration_str.endswith('h'):
+                premium_plus_duration = timedelta(hours=int(duration_str[:-1]))
+            elif duration_str.endswith('d'):
                 premium_plus_duration = timedelta(days=int(duration_str[:-1]))
             elif duration_str.endswith('w'):
                 premium_plus_duration = timedelta(weeks=int(duration_str[:-1]))
-            elif duration_str.endswith('m'):
-                premium_plus_duration = timedelta(days=int(duration_str[:-1]) * 30)
             elif duration_str.endswith('y'):
                 premium_plus_duration = timedelta(days=int(duration_str[:-1]) * 365)
-            elif duration_str == 'lf':
-                premium_plus_duration = timedelta(days=365 * 100)  # Considered as lifetime
             else:
-                await update.message.reply_text("Invalid duration format. Use 'd' for days, 'w' for weeks, 'm' for months, 'y' for years, or 'lf' for lifetime.")
+                await update.message.reply_text("Invalid duration format. Use 'm' for minutes, 'h' for hours, 'd' for days, 'w' for weeks, 'y' for years, or 'lf' for lifetime.")
                 return
-
             end_time = datetime.now() + premium_plus_duration
-            data['premium_plus_users'][target_user_id] = end_time.isoformat()
-            save_data()
-            await update.message.reply_text(f"User with ID {target_user_id} has been added as premium plus until {end_time}.")
-        context.user_data['awaiting_add_premium_plus_user'] = False
+
+        data['premium_plus_users'][target_user_id] = end_time.isoformat() if end_time else 'lifetime'
+        save_data()
+        context.user_data['awaiting_add_premium_plus_user_id'] = False
+        await update.message.reply_text(f"User with ID {target_user_id} has been added as premium plus.")
     elif context.user_data.get('awaiting_remove_premium_plus_user'):
-        target_user_id = int(update.message.text)
+        target_user_id = int(text)
         if target_user_id in data['premium_plus_users']:
             del data['premium_plus_users'][target_user_id]
             save_data()
+            context.user_data['awaiting_remove_premium_plus_user'] = False
             await update.message.reply_text(f"User with ID {target_user_id} has been removed from premium plus.")
         else:
             await update.message.reply_text(f"User with ID {target_user_id} is not a premium plus user.")
-        context.user_data['awaiting_remove_premium_plus_user'] = False
+            context.user_data['awaiting_remove_premium_plus_user'] = False
+    elif context.user_data.get('awaiting_set_premium_plus_daily_limit'):
+        data['premium_plus_daily_limit'] = int(text)
+        save_data()
+        context.user_data['awaiting_set_premium_plus_daily_limit'] = False
+        await update.message.reply_text(f"Premium plus daily limit set to {data['premium_plus_daily_limit']} accounts per day.")
+    elif context.user_data.get('awaiting_unlimited_access_premium_plus'):
+        if text.lower() == 'on':
+            data['unlimited_access_premium_plus'] = True
+            await update.message.reply_text("Unlimited access for premium plus users enabled.")
+        elif text.lower() == 'off':
+            data['unlimited_access_premium_plus'] = False
+            await update.message.reply_text("Unlimited access for premium plus users disabled.")
+        else:
+            await update.message.reply_text("Invalid input. Please enter 'on' or 'off'.")
+        save_data()
+        context.user_data['awaiting_unlimited_access_premium_plus'] = False
     elif context.user_data.get('awaiting_add_admin'):
-        target_user_id = int(update.message.text)
-        data['admins'].add(target_user_id)
-        save_data()
-        await update.message.reply_text(f"User with ID {target_user_id} has been added as admin.")
-        context.user_data['awaiting_add_admin'] = False
+        target_user_id = int(text)
+        if target_user_id == OWNER_ID:
+            await update.message.reply_text("Cannot add the owner as admin.")
+        else:
+            data['admins'].add(target_user_id)
+            save_data()
+            context.user_data['awaiting_add_admin'] = False
+            await update.message.reply_text(f"User with ID {target_user_id} has been added as admin.")
     elif context.user_data.get('awaiting_remove_admin'):
-        target_user_id = int(update.message.text)
-        data['admins'].discard(target_user_id)
-        save_data()
-        await update.message.reply_text(f"User with ID {target_user_id} has been removed as admin.")
-        context.user_data['awaiting_remove_admin'] = False
+        target_user_id = int(text)
+        if target_user_id == OWNER_ID:
+            await update.message.reply_text("Cannot remove the owner as admin.")
+        else:
+            data['admins'].discard(target_user_id)
+            save_data()
+            context.user_data['awaiting_remove_admin'] = False
+            await update.message.reply_text(f"User with ID {target_user_id} has been removed from admin.")
 
-# Create the application and handlers
-application = Application.builder().token(TOKEN).build()
+async def set_commands(application: Application):
+    await application.bot.set_my_commands([
+        BotCommand("start", "Start the bot"),
+        BotCommand("menu", "Show account types menu"),
+        BotCommand("feedbackmenu", "Show feedback and report menu"),
+        BotCommand("ownermenu", "Show owner commands menu (owner only)"),
+        BotCommand("premium", "Access premium features"),
+        BotCommand("premium_plus", "Access premium plus features")
+    ])
 
-# Register handlers
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("menu", show_menu))
-application.add_handler(CommandHandler("feedbackmenu", show_feedback_menu))
-application.add_handler(CommandHandler("block", block_user, filters=filters.User(OWNER_ID)))
-application.add_handler(CommandHandler("unblock", unblock_user, filters=filters.User(OWNER_ID)))
-application.add_handler(CommandHandler("timeout", timeout_user, filters=filters.User(OWNER_ID)))
-application.add_handler(CommandHandler("removetimeout", remove_timeout, filters=filters.User(OWNER_ID)))
-application.add_handler(CommandHandler("listblocked", list_blocked, filters=filters.User(OWNER_ID)))
-application.add_handler(CommandHandler("addsection", add_section, filters=filters.User(OWNER_ID)))
-application.add_handler(CommandHandler("deletesection", delete_section, filters=filters.User(OWNER_ID)))
-application.add_handler(CommandHandler("uploadsection", handle_upload_section, filters=filters.User(OWNER_ID)))
-application.add_handler(MessageHandler(filters.Document.FileExtension("txt"), handle_document, filters=filters.User(OWNER_ID)))
-application.add_handler(CallbackQueryHandler(handle_menu_choice))
-application.add_handler(MessageHandler(filters.TEXT, handle_user_input))
+async def update_active_users(application: Application):
+    while True:
+        total_users, active_users = get_statistics()
+        print(f"Total Users: {total_users}, Active Users: {active_users}")
+        await asyncio.sleep(60)  # تحقق كل 60 ثانية
 
-# Run the bot
-if __name__ == '__main__':
+def main():
+    application = Application.builder().token(TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("premium", premium))
+    application.add_handler(CommandHandler("premium_plus", premium_plus))
+    application.add_handler(CommandHandler("blockuser", block_user))
+    application.add_handler(CommandHandler("unblock_user", unblock_user))
+    application.add_handler(CommandHandler("timeout_user", timeout_user))
+    application.add_handler(CommandHandler("remove_timeout", remove_timeout))
+    application.add_handler(CommandHandler("listblocked", list_blocked))
+    application.add_handler(CommandHandler("menu", show_menu))
+    application.add_handler(CommandHandler("feedbackmenu", show_feedback_menu))
+    application.add_handler(CommandHandler("ownermenu", handle_owner_commands))
+    application.add_handler(CommandHandler("deletesection", delete_section))
+    application.add_handler(CallbackQueryHandler(handle_menu_choice))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_user_input))
+    application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+
+    application.job_queue.run_once(lambda context: asyncio.create_task(set_commands(application)), 0)
+    application.job_queue.run_once(lambda context: asyncio.create_task(update_active_users(application)), 0)
+
     application.run_polling()
+
+if __name__ == "__main__":
+    main()
