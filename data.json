@@ -1,0 +1,68 @@
+{
+    "shortcuts": {},
+    "account_types": [
+        "Valorant",
+        "league of legends"
+    ],
+    "blocked_users": [],
+    "allowed_channels": [],
+    "allow_all_channels": true,
+    "enabled": true,
+    "user_daily_limits": {
+        "1459259914": [
+            "2024-07-09T07:10:16.707575",
+            1
+        ],
+        "6213782792": [
+            "2024-07-09T08:58:48.596195",
+            2
+        ]
+    },
+    "daily_limit": 2,
+    "unlimited_access": false,
+    "user_data": {
+        "6213782792": {
+            "username": "haze015",
+            "first_use": "2024-07-09T09:19:18.547888",
+            "last_use": "2024-07-09T09:19:18.547888",
+            "use_count": 1,
+            "last_activity": "2024-07-09T09:19:18.547888"
+        },
+        "7342561936": {
+            "username": null,
+            "first_use": "2024-07-09T19:42:44.687974",
+            "last_use": "2024-07-09T19:42:45.839816",
+            "use_count": 2,
+            "last_activity": "2024-07-09T19:42:45.839816"
+        },
+        "1459259914": {
+            "username": "hemaelkady",
+            "first_use": "2024-07-09T07:05:25.123708",
+            "last_use": "2024-07-09T07:13:35.728097",
+            "use_count": 5
+        },
+        "7342561936": {
+            "username": null,
+            "first_use": "2024-07-09T20:51:48.917398",
+            "last_use": "2024-07-09T20:52:22.118585",
+            "use_count": 4,
+            "last_activity": "2024-07-09T20:52:22.118585"
+        }
+    },
+    "maintenance_mode": false,
+    "premium_users": [],
+    "user_requests": {
+        "7342561936": [
+            1720547540.0440295
+        ],
+        "6213782792": [
+            1720505959.7977273
+        ]
+    },
+    "premium_daily_limit": 50,
+    "unlimited_access_premium_plus": false,
+    "premium_plus_users": [],
+    "premium_plus_daily_limit": 100,
+    "admins": [],
+    "timeouts": {}
+}
